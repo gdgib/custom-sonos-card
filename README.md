@@ -79,8 +79,8 @@ sections: # see explanation further up
   - grouping
   - media browser
   - player
-widthPercentage: 75 # default is 100. Use this to reduce the width of the card.
-heightPercentage: 75 # default is 100. Use this to reduce the height of the card.
+widthPercentage: 75 # default is 100. Use this to change the width of the card.
+heightPercentage: 75 # default is 100. Use this to change the height of the card.
 entityId: media_player.sonos_bedroom # Forces this player to be the selected one on loading the card (overrides url param etc)
 entityNameRegexToReplace: 'SONOS ' # Regex pattern to replace parts of the entity names
 entityNameReplacement: ''
@@ -104,6 +104,7 @@ predefinedGroups: # defaults to empty
       - media_player.hall
 
 # player specific
+showVolumeUpAndDownButtons: true # default is false, shows buttons for increasing and decreasing volume
 labelWhenNoMediaIsSelected: 'No media selected'
 labelForTheAllVolumesSlider: 'All volumes'
 mediaArtworkOverrides: # Show your own selected artwork if certain rules match
@@ -125,7 +126,8 @@ dynamicVolumeSlider: true # default is false. See more in section further down.
 artworkHostname: http://192.168.0.59:8123 #default is ''. Usually not needed, but depending on your setup your device might not be able to access the artwork on the default host. One example where it could be needed is if you cast the dashboard with Google Cast.
 
 # media browser specific
-mediaTitle: ''
+mediaBrowserItemsPerRow: 4 # default is 1. Use this to show items as icons.
+mediaBrowserShowTitleForThumbnailIcons: true # default is false. Only makes a difference if mediaBrowserItemsPerRow > 1. Will show title for thumbnail artworks.
 customThumbnailIfMissing:
   Ed Sheeran Radio: https://i.scdn.co/image/ab6761610000e5eb4d2f80ceffc6c70a432ccd7c
   Legendary: https://i.scdn.co/image/ab67706f000000027b2e7ee752dc222ff2fd466f
@@ -156,9 +158,7 @@ cards:
     cards:
       - type: entities
         entities:
-          - show_name: true
-            show_icon: true
-            type: button
+          - type: button
             tap_action:
               action: navigate
               navigation_path: /

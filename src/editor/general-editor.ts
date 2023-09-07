@@ -14,24 +14,32 @@ export const GENERAL_SCHEMA = [
     name: 'sections',
   },
   {
+    type: 'integer',
+    name: 'mediaBrowserItemsPerRow',
+    default: 1,
+    required: true,
+    valueMin: 1,
+    valueMax: 30,
+  },
+  {
     type: 'string',
     name: 'title',
+  },
+  {
+    name: 'showVolumeUpAndDownButtons',
+    selector: { boolean: {} },
   },
   {
     type: 'integer',
     name: 'widthPercentage',
     default: 100,
     required: true,
-    valueMin: 50,
-    valueMax: 100,
   },
   {
     type: 'integer',
     name: 'heightPercentage',
     default: 100,
     required: true,
-    valueMin: 50,
-    valueMax: 100,
   },
 ];
 

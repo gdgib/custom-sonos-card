@@ -15,8 +15,11 @@ import {
 } from './constants';
 import { when } from 'lit/directives/when.js';
 import { styleMap } from 'lit-html/directives/style-map.js';
+import { getHeight, getWidth } from './utils/utils';
 
 const { GROUPING, GROUPS, MEDIA_BROWSER, PLAYER, VOLUMES } = Section;
+const TITLE_HEIGHT = 2;
+const FOOTER_HEIGHT = 5;
 
 export class Card extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -29,19 +32,19 @@ export class Card extends LitElement {
   @state() entityId!: string;
   render() {
     this.createStore();
-    const height = getWidthOrHeight(this.config.heightPercentage);
-    const footerHeight = 5;
+    let height = getHeight(this.config);
     const sections = this.config.sections;
     const showFooter = !sections || sections.length > 1;
-    const contentHeight = showFooter ? height - footerHeight : height;
+    const contentHeight = showFooter ? height - FOOTER_HEIGHT : height;
     const title = this.config.title;
+    height = title ? height + TITLE_HEIGHT : height;
     return html`
       <ha-card style="${this.haCardStyle(height)}">
         <div class="loader" ?hidden="${!this.showLoader}">
           <ha-circular-progress active="" progress="0"></ha-circular-progress>
         </div>
-        <div style="${this.contentStyle(contentHeight)}">
-          ${title ? html`<div style="${this.titleStyle()}">${title}</div>` : html``}
+        ${title ? html`<div class="title">${title}</div>` : html``}
+        <div class="content" style="${this.contentStyle(contentHeight)}">
           ${choose(this.section, [
             [PLAYER, () => html` <sonos-player .store=${this.store}></sonos-player>`],
             [GROUPS, () => html` <sonos-groups .store=${this.store}></sonos-groups>`],
@@ -53,11 +56,7 @@ export class Card extends LitElement {
         ${when(
           showFooter,
           () =>
-            html`<sonos-footer
-              style=${this.headerStyle(footerHeight)}
-              .config="${this.config}"
-              .section="${this.section}"
-            >
+            html`<sonos-footer style=${this.footerStyle()} .config="${this.config}" .section="${this.section}">
             </sonos-footer>`,
         )}
       </ha-card>
@@ -135,7 +134,7 @@ export class Card extends LitElement {
   };
 
   haCardStyle(height: number) {
-    const width = getWidthOrHeight(this.config.widthPercentage);
+    const width = getWidth(this.config);
     return styleMap({
       color: 'var(--secondary-text-color)',
       height: `${height}rem`,
@@ -144,9 +143,9 @@ export class Card extends LitElement {
     });
   }
 
-  headerStyle(height: number) {
+  footerStyle() {
     return styleMap({
-      height: height + 'rem',
+      height: `${FOOTER_HEIGHT}rem`,
       paddingBottom: '1rem',
     });
   }
@@ -155,16 +154,6 @@ export class Card extends LitElement {
     return styleMap({
       overflowY: 'auto',
       height: `${height}rem`,
-    });
-  }
-
-  private titleStyle() {
-    return styleMap({
-      margin: '0.5rem 0',
-      textAlign: 'center',
-      fontWeight: 'bold',
-      fontSize: 'larger',
-      color: 'var(--secondary-text-color)',
     });
   }
 
@@ -194,18 +183,23 @@ export class Card extends LitElement {
   }
 
   static get styles() {
-    return [
-      css`
-        .loader {
-          position: absolute;
-          z-index: 1000;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          --mdc-theme-primary: var(--accent-color);
-        }
-      `,
-    ];
+    return css`
+      .loader {
+        position: absolute;
+        z-index: 1000;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        --mdc-theme-primary: var(--accent-color);
+      }
+      .title {
+        margin: 0.4rem 0;
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        color: var(--secondary-text-color);
+      }
+    `;
   }
 }
 
@@ -217,16 +211,4 @@ function listenForEntityId(listener: EventListener) {
 
 function stopListeningForEntityId(listener: EventListener) {
   window.removeEventListener(ACTIVE_PLAYER_EVENT, listener);
-}
-
-function getWidthOrHeight(confValue?: number) {
-  const defaultValue = 40;
-  if (confValue) {
-    if (confValue < 50 || confValue > 100) {
-      console.error('width/height percentage must be between 50 and 100');
-    } else {
-      return (confValue / 100) * defaultValue;
-    }
-  }
-  return defaultValue;
 }

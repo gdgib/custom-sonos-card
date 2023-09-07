@@ -2,15 +2,15 @@ import { HomeAssistant } from 'custom-card-helpers';
 import { html, LitElement } from 'lit';
 import { until } from 'lit-html/directives/until.js';
 import { property, state } from 'lit/decorators.js';
-import '../components/media-list-item';
+import '../components/media-browser-list';
+import '../components/media-browser-icons';
 import '../components/media-browser-header';
 import MediaBrowseService from '../services/media-browse-service';
 import MediaControlService from '../services/media-control-service';
 import Store from '../store';
 import { CardConfig, MediaPlayerItem, Section } from '../types';
-import { dispatchShowSection, listStyle } from '../utils';
-import { BROWSE_CLICKED, BROWSE_STATE, PLAY_DIR } from '../constants';
-import { styleMap } from 'lit-html/directives/style-map.js';
+import { dispatchShowSection } from '../utils/utils';
+import { BROWSE_CLICKED, BROWSE_STATE, MEDIA_ITEM_SELECTED, PLAY_DIR } from '../constants';
 
 const LOCAL_STORAGE_CURRENT_DIR = 'custom-sonos-card_currentDir';
 
@@ -31,18 +31,20 @@ export class MediaBrowser extends LitElement {
   };
 
   private readonly browseClickedListener = async () => {
-    await this.browseClicked();
+    this.browseClicked();
   };
 
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener(PLAY_DIR, this.playDirListener);
     window.addEventListener(BROWSE_CLICKED, this.browseClickedListener);
+    window.addEventListener(MEDIA_ITEM_SELECTED, this.onMediaItemSelected);
   }
 
   disconnectedCallback() {
     window.removeEventListener(PLAY_DIR, this.playDirListener);
     window.removeEventListener(BROWSE_CLICKED, this.browseClickedListener);
+    window.removeEventListener(MEDIA_ITEM_SELECTED, this.onMediaItemSelected);
     super.disconnectedCallback();
   }
 
@@ -69,21 +71,9 @@ export class MediaBrowser extends LitElement {
       ${this.entityId !== '' &&
       until(
         (this.browse ? this.loadMediaDir(this.currentDir) : this.getAllFavorites()).then((items) => {
-          const itemsWithImage = MediaBrowser.itemsWithImage(items);
-          return html` <mwc-list multi style="${listStyle()}">
-            ${items.map((item) => {
-              const itemClick = async () => await this.onMediaItemClick(item);
-              return html`
-                <mwc-list-item @click="${itemClick}" style="${this.mwcListItemStyle()}">
-                  <sonos-media-list-item
-                    .itemsWithImage="${itemsWithImage}"
-                    .mediaItem="${item}"
-                    .config="${this.config}"
-                  ></sonos-media-list-item>
-                </mwc-list-item>
-              `;
-            })}
-          </mwc-list>`;
+          return this.config.mediaBrowserItemsPerRow > 1
+            ? html`<sonos-media-browser-icons .items=${items} .store=${this.store}></sonos-media-browser-icons>`
+            : html` <sonos-media-browser-list .items=${items} .store=${this.store}></sonos-media-browser-list>`;
         }),
       )}
     `;
@@ -107,10 +97,6 @@ export class MediaBrowser extends LitElement {
     );
   }
 
-  private mwcListItemStyle() {
-    return styleMap({ height: '40px' });
-  }
-
   private browseClicked() {
     if (this.parentDirs.length) {
       this.setCurrentDir(this.parentDirs.pop());
@@ -132,7 +118,8 @@ export class MediaBrowser extends LitElement {
     this.dispatchBrowseState();
   }
 
-  private async onMediaItemClick(mediaItem: MediaPlayerItem) {
+  private onMediaItemSelected = (event: Event) => {
+    const mediaItem = (event as CustomEvent).detail;
     if (mediaItem.can_expand) {
       this.currentDir && this.parentDirs.push(this.currentDir);
       this.setCurrentDir(mediaItem);
@@ -140,7 +127,7 @@ export class MediaBrowser extends LitElement {
       this.playItem(mediaItem);
       setTimeout(() => dispatchShowSection(Section.PLAYER), 1000);
     }
-  }
+  };
 
   private async playItem(mediaItem: MediaPlayerItem) {
     if (mediaItem.media_content_type || mediaItem.media_content_id) {
@@ -165,17 +152,6 @@ export class MediaBrowser extends LitElement {
 
   private static createSource(source: MediaPlayerItem) {
     return { ...source, can_play: true };
-  }
-
-  private static shuffleArray(array: MediaPlayerItem[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-  }
-
-  private static itemsWithImage(items: MediaPlayerItem[]) {
-    return items.some((item) => item.thumbnail);
   }
 
   private async loadMediaDir(mediaItem?: MediaPlayerItem) {
